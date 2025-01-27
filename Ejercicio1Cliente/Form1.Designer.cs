@@ -47,6 +47,7 @@
             this.btnTime.Name = "btnTime";
             this.btnTime.Size = new System.Drawing.Size(75, 23);
             this.btnTime.TabIndex = 0;
+            this.btnTime.Tag = "time";
             this.btnTime.Text = "Time";
             this.btnTime.UseVisualStyleBackColor = true;
             this.btnTime.Click += new System.EventHandler(this.btnTime_Click);
@@ -57,6 +58,7 @@
             this.btnDate.Name = "btnDate";
             this.btnDate.Size = new System.Drawing.Size(75, 23);
             this.btnDate.TabIndex = 1;
+            this.btnDate.Tag = "date";
             this.btnDate.Text = "Date";
             this.btnDate.UseVisualStyleBackColor = true;
             this.btnDate.Click += new System.EventHandler(this.btnDate_Click);
@@ -67,6 +69,7 @@
             this.btnAll.Name = "btnAll";
             this.btnAll.Size = new System.Drawing.Size(75, 23);
             this.btnAll.TabIndex = 2;
+            this.btnAll.Tag = "all";
             this.btnAll.Text = "All";
             this.btnAll.UseVisualStyleBackColor = true;
             this.btnAll.Click += new System.EventHandler(this.btnAll_Click);
@@ -77,6 +80,7 @@
             this.btnClose.Name = "btnClose";
             this.btnClose.Size = new System.Drawing.Size(75, 23);
             this.btnClose.TabIndex = 3;
+            this.btnClose.Tag = "close";
             this.btnClose.Text = "Close";
             this.btnClose.UseVisualStyleBackColor = true;
             this.btnClose.Click += new System.EventHandler(this.btnClose_Click);
@@ -118,7 +122,7 @@
             // cambiarIPPuertoToolStripMenuItem1
             // 
             this.cambiarIPPuertoToolStripMenuItem1.Name = "cambiarIPPuertoToolStripMenuItem1";
-            this.cambiarIPPuertoToolStripMenuItem1.Size = new System.Drawing.Size(180, 22);
+            this.cambiarIPPuertoToolStripMenuItem1.Size = new System.Drawing.Size(172, 22);
             this.cambiarIPPuertoToolStripMenuItem1.Text = "Cambiar IP/Puerto";
             this.cambiarIPPuertoToolStripMenuItem1.Click += new System.EventHandler(this.cambiarIPPuertoToolStripMenuItem1_Click);
             // 

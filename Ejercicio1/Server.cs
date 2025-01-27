@@ -69,8 +69,9 @@ namespace Ejercicio1// Cumplior protocolo en close (close pass), puerto ocpupado
                 try
                 {
                     mensaje = sr.ReadLine();
+                    string[] partes = mensaje.Split(' ');
 
-                    switch (mensaje)
+                    switch (partes[0])
                     {
                         case "time":
                             sw.WriteLine(DateTime.Now.ToString("HH:mm") + "\n");
@@ -78,7 +79,6 @@ namespace Ejercicio1// Cumplior protocolo en close (close pass), puerto ocpupado
                             sw.Flush();
                             cliente.Close();
                             sr.ReadLine();
-
                             break;
 
                         case "date":
@@ -98,33 +98,45 @@ namespace Ejercicio1// Cumplior protocolo en close (close pass), puerto ocpupado
                             break;
 
                         case "close":
-                            sw.WriteLine("Para cerrar el servidor necesitas introducir la contraseña!");
-                            sw.Flush();
-                            string intento = sr.ReadLine();
-
-                            using (StreamReader srp = new StreamReader(Environment.GetEnvironmentVariable("programdata") + "\\serverPassword.txt"))
+                            if (partes.Length > 1)
                             {
-                                string password = srp.ReadLine();
+                                string intento = partes[1];
 
-                                if (password == intento)
+                                try
                                 {
-                                    sw.WriteLine("Cerrando");
-                                    sw.Flush();
-                                    activo = false;
-                                    s.Close();
+                                    using (StreamReader srp = new StreamReader(Environment.GetEnvironmentVariable("programdata") + "\\serverPassword.txt"))
+                                    {
+                                        string password = srp.ReadLine();
 
+                                        if (password == intento)
+                                        {
+                                            sw.WriteLine("Cerrando");
+                                            sw.Flush();
+                                            activo = false;
+                                            s.Close();
+                                        }
+                                        else
+                                        {
+                                            sw.WriteLine("Contraseña incorrecta!\n");
+                                            sw.Flush();
+                                            cliente.Close();
+                                            sr.ReadLine();
+                                        }
+                                    }
                                 }
-                                else
+                                catch (Exception ex) when (ex is ArgumentException || ex is ArgumentNullException || ex is FileNotFoundException || ex is DirectoryNotFoundException)
                                 {
-                                    sw.WriteLine("Contraseña incorrecta!\n");
+                                    sw.WriteLine("Error en el archivo");
                                     sw.Flush();
                                     cliente.Close();
-                                    sr.ReadLine();
                                 }
                             }
-                            
-
-
+                            else
+                            {
+                                sw.WriteLine("Comando incorrecto, falta la contraseña!");
+                                sw.Flush();
+                                cliente.Close();
+                            }
                             break;
 
                         default:
@@ -133,8 +145,6 @@ namespace Ejercicio1// Cumplior protocolo en close (close pass), puerto ocpupado
                             cliente.Close();
                             break;
                     }
-
-
                 }
                 catch (IOException e)
                 {

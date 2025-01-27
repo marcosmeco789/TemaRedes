@@ -20,6 +20,7 @@ namespace Ejercicio1Cliente
         public Form1()
         {
             InitializeComponent();
+
         }
 
         string boton = "";
@@ -52,7 +53,7 @@ namespace Ejercicio1Cliente
                 switch (boton)
                 {
                     case "time":
-                        sw.WriteLine("time");
+                        sw.WriteLine(sender.Tag.ToString());
                         sw.Flush();
                         msg = sr.ReadLine();
                         MessageBox.Show("Son las: " + msg, "Comando Time", MessageBoxButtons.OK, MessageBoxIcon.Information);
@@ -73,11 +74,7 @@ namespace Ejercicio1Cliente
                         break;
 
                     case "close":
-                        sw.WriteLine("close");
-                        sw.Flush();
-                        sr.ReadLine();
-
-                        sw.WriteLine(textBox1.Text);
+                        sw.WriteLine("close "+textBox1.Text);
                         sw.Flush();
                         msg = sr.ReadLine();
                         if (msg == "Cerrando")
