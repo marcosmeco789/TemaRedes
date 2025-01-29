@@ -24,7 +24,7 @@ namespace Ejercicio1Cliente
         }
 
         string boton = "";
-        public void conexion()
+        public void conexion(object sender)
         {
             string msg;
             Console.WriteLine(IP_SERVER);
@@ -50,53 +50,30 @@ namespace Ejercicio1Cliente
                 // Leemos mensaje de bienvenida ya que es lo primero que envía el servidor
                 msg = sr.ReadLine();
 
-                switch (boton)
+                if (((Button)sender).Tag.ToString() != "close")
                 {
-                    case "time":
-                        sw.WriteLine(sender.Tag.ToString());
-                        sw.Flush();
-                        msg = sr.ReadLine();
-                        MessageBox.Show("Son las: " + msg, "Comando Time", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                        break;
-
-                    case "date":
-                        sw.WriteLine("date");
-                        sw.Flush();
-                        msg = sr.ReadLine();
-                        MessageBox.Show("Hoy es: " + msg, "Comando Date", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                        break;
-
-                    case "all":
-                        sw.WriteLine("all");
-                        sw.Flush();
-                        msg = sr.ReadLine();
-                        MessageBox.Show(msg, "Comando All", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                        break;
-
-                    case "close":
-                        sw.WriteLine("close "+textBox1.Text);
-                        sw.Flush();
-                        msg = sr.ReadLine();
-                        if (msg == "Cerrando")
-                        {
-                            MessageBox.Show("Servidor cerrado con exito!", "Cerrado", MessageBoxButtons.OK, MessageBoxIcon.Information);
-
-                        }
-                        else
-                        {
-                            MessageBox.Show("Contraseña incorrecta!", "ERROR", MessageBoxButtons.OK, MessageBoxIcon.Error);
-
-                        }
-                        break;
-
-                    default:
-                        break;
+                    sw.WriteLine(((Button)sender).Tag.ToString());
+                    sw.Flush();
+                    msg = sr.ReadLine();
+                    MessageBox.Show("Son las: " + msg, "Comando Time", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
+                else
+                {
+                    sw.WriteLine("close " + textBox1.Text);
+                    sw.Flush();
+                    msg = sr.ReadLine();
+                    if (msg == "Cerrando")
+                    {
+                        MessageBox.Show("Servidor cerrado con exito!", "Cerrado", MessageBoxButtons.OK, MessageBoxIcon.Information);
 
+                    }
+                    else
+                    {
+                        MessageBox.Show("Contraseña incorrecta!", "ERROR", MessageBoxButtons.OK, MessageBoxIcon.Error);
 
+                    }
 
-
-
+                }
 
             }
 
@@ -105,35 +82,17 @@ namespace Ejercicio1Cliente
 
         private void btnTime_Click(object sender, EventArgs e)
         {
-            boton = "time";
-            conexion();
+            conexion(sender);
         }
 
-        private void btnDate_Click(object sender, EventArgs e)
-        {
-            boton = "date";
-            conexion();
-        }
-
-        private void btnAll_Click(object sender, EventArgs e)
-        {
-            boton = "all";
-            conexion();
-        }
-
-        private void btnClose_Click(object sender, EventArgs e)
-        {
-            boton = "close";
-            conexion();
-        }
 
         private void cambiarIPPuertoToolStripMenuItem1_Click(object sender, EventArgs e)
         {
-            Form2 form2 = new Form2( IP_SERVER,  PUERTO);
+            Form2 form2 = new Form2(IP_SERVER, PUERTO);
             form2.ShowDialog();
 
-             IP_SERVER = form2.Ip;
-             PUERTO = form2.Puerto;
+            IP_SERVER = form2.Ip;
+            PUERTO = form2.Puerto;
         }
     }
 }

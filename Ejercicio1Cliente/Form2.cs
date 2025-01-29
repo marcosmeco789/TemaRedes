@@ -19,13 +19,19 @@ namespace Ejercicio1Cliente
 
         bool validoIp = true;
         bool validoPuerto = true;
+        bool flag = false;
+
+        string ipAux;
+        string puertoAux;
 
         public Form2(string ip, int puerto)
         {
             InitializeComponent();
 
             txtIp.Text = ip;
+            ipAux = ip;
             txtPuerto.Text = puerto.ToString();
+            puertoAux = puerto.ToString();
 
         }
 
@@ -35,7 +41,8 @@ namespace Ejercicio1Cliente
             {
                 validoIp = false;
                 MessageBox.Show("La IP no es válida.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            } else
+            }
+            else
             {
                 Ip = txtIp.Text;
                 validoIp = true;
@@ -46,20 +53,36 @@ namespace Ejercicio1Cliente
             {
                 validoPuerto = false;
                 MessageBox.Show("El puerto no es válido. Debe estar entre 0 y 65535.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            } else
+            }
+            else
             {
                 Puerto = puerto;
                 validoPuerto = true;
+            }
+            flag = true;
+        }
+
+
+
+        private void button1_Click(object sender, EventArgs e)
+        {
+            sanitizar();
+            if (validoPuerto && validoIp)
+            {
+                MessageBox.Show("IP/Puerto cambiado exitosamente!", "Añadido", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
         }
 
         private void Form2_FormClosing(object sender, FormClosingEventArgs e)
         {
-            sanitizar();
-            if (!validoPuerto || !validoIp)
+            if (!flag || !validoIp || !validoPuerto)
             {
-                e.Cancel = true;
+                Ip = ipAux;
+
+                Puerto = int.Parse(puertoAux);
             }
+
+
         }
     }
 }

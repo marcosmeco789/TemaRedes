@@ -40,7 +40,7 @@ namespace TemaRedes
                 using (StreamReader sr = new StreamReader(ns))
                 using (StreamWriter sw = new StreamWriter(ns))
                 {
-                    string welcome = "Wellcome to this great Server";
+                    string welcome = "Bienvenido al chat room!";
                     sw.WriteLine(welcome);
                     sw.Flush();
                     while (true) //Esto normalmente dependerá de una bandera

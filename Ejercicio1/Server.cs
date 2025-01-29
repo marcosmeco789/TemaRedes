@@ -8,7 +8,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.IO;
 
-namespace Ejercicio1// Cumplior protocolo en close (close pass), puerto ocpupado. revisar archivo
+namespace Ejercicio1 
 {
     internal class Server
     {
@@ -16,23 +16,27 @@ namespace Ejercicio1// Cumplior protocolo en close (close pass), puerto ocpupado
         bool activo = true;
         public void initServer()
         {
-            try
-            {
-                s = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-                IPEndPoint ie = new IPEndPoint(IPAddress.Any, 31416);
-                s.Bind(ie);
-                s.Listen(10);
-                Console.WriteLine("Server waiting at port {0}", ie.Port);
+            bool openPort = false;
+            int port = 31416;
 
-            }
-            catch (SocketException e)
+            while (!openPort)
             {
-                s = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-                IPEndPoint ie = new IPEndPoint(IPAddress.Any, 270);
-                s.Bind(ie);
-                s.Listen(10);
-                Console.WriteLine("Server waiting at port {0}", ie.Port);
+                try
+                {
+                    s = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+                    IPEndPoint ie = new IPEndPoint(IPAddress.Any, port);
+                    s.Bind(ie);
+                    s.Listen(10);
+                    Console.WriteLine("Server waiting at port {0}", ie.Port);
+                    openPort = true;
 
+                }
+                catch (SocketException e)
+                {
+                    openPort = false;
+                    port++;
+
+                }
             }
 
             while (activo)
