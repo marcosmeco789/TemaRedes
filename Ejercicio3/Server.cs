@@ -12,6 +12,8 @@ namespace Ejercicio3
 {
     internal class Server
     {
+        List<StreamWriter> usuarios = new List<StreamWriter>();
+        List<string> lista = new List<string>();
         Socket s;
         bool activo = true;
         public void initServer()
@@ -57,6 +59,7 @@ namespace Ejercicio3
 
         public void hiloCliente(object socket)
         {
+            string usuario;
             string mensaje;
             Socket cliente = (Socket)socket;
             IPEndPoint ieCliente = (IPEndPoint)cliente.RemoteEndPoint;
@@ -66,33 +69,101 @@ namespace Ejercicio3
             using (StreamReader sr = new StreamReader(ns))
             using (StreamWriter sw = new StreamWriter(ns))
             {
-                string welcome = "Wellcome to this great Server";
+                usuarios.Add(sw);
+                string welcome = "Bienvenido al chatroom! Introduce tu nombre de usuario.";
                 sw.WriteLine(welcome);
                 sw.Flush();
-                while (true) //Esto normalmente dependerá de una bandera
+                usuario = sr.ReadLine();
+                if (usuario != null)
+                {
+                    lista.Add($"{usuario}@{ieCliente.Address}");
+                    Console.WriteLine("{0}@{1} se ha conectado al chat!",
+                    usuario, ieCliente.Address);
+
+                    sw.WriteLine("{0}@{1} se ha conectado al chat!",
+                    usuario, ieCliente.Address);
+                    sw.Flush();
+
+                    foreach (var usuarioChat in usuarios)
+                    {
+                        if (usuarioChat != sw)
+                        {
+                            usuarioChat.WriteLine("{0}@{1} se ha conectado al chat!", usuario, ieCliente.Address);
+                            usuarioChat.Flush();
+                        }
+
+
+                    }
+                }
+                else
+                {
+                    cliente.Close();
+                }
+                while (true)
                 {
                     try
                     {
                         mensaje = sr.ReadLine();
-                        sw.WriteLine(mensaje);
-                        sw.Flush();
-                        //El mensaje es null al cerrar
                         if (mensaje != null)
                         {
-                            Console.WriteLine("{0} says: {1}",
-                            ieCliente.Address, mensaje);
+                            if (mensaje=="#exit")
+                            {
+                                lista.Remove($"{usuario}@{ieCliente.Address}");
+                                cliente.Close();
+
+                            } else if (mensaje=="#list")
+                            {
+                                foreach (string usuarioLista in lista)
+                                {
+                                    sw.WriteLine(usuarioLista);
+                                    sw.Flush();
+                                }
+                            } else
+                            {
+                                Console.WriteLine(mensaje);
+                                foreach (var usuarioChat in usuarios)
+                                {
+                                    if (usuarioChat != sw)
+                                    {
+                                        usuarioChat.WriteLine(mensaje);
+                                        usuarioChat.Flush();
+                                    }
+
+
+                                }
+                            }
+                            
+                        } else
+                        {
+                            lista.Remove($"{usuario}@{ieCliente.Address}");
+                            cliente.Close();
+
                         }
                     }
                     catch (IOException)
                     {
-                        //Salta al acceder al socket
-                        //y no estar permitido
+
+                        lista.Remove($"{usuario}@{ieCliente.Address}");
+                        cliente.Close();
                         break;
                     }
                 }
                 Console.WriteLine("Finished connection with {0}:{1}",
                 ieCliente.Address, ieCliente.Port);
-            }
+
+                foreach (var usuarioChat in usuarios)
+                {
+                    if (usuarioChat != sw)
+                    {
+                        usuarioChat.WriteLine("Finished connection with {0}@{1}",usuario, ieCliente.Address);
+                        usuarioChat.Flush();
+                    }
+
+
+                }
+                cliente.Close();
+                usuarios.Remove(sw);
+            } 
             cliente.Close();
         }
 

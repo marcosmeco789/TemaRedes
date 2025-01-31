@@ -7,11 +7,14 @@ using System.Text;
 using System.Threading.Tasks;
 using System.IO;
 using System.Threading;
+using System.Collections;
 
 namespace TemaRedes
 {
     internal class Program
     {
+
+       
 
         static void Main(string[] args)
         {
@@ -47,10 +50,10 @@ namespace TemaRedes
                     {
                         try
                         {
+                            
                             mensaje = sr.ReadLine();
                             sw.WriteLine(mensaje);
                             sw.Flush();
-                            //El mensaje es null al cerrar
                             if (mensaje != null)
                             {
                                 Console.WriteLine("{0} says: {1}",
