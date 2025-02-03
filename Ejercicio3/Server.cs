@@ -8,14 +8,16 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.IO;
 
-namespace Ejercicio3
+namespace Ejercicio3//Locks
 {
     internal class Server
     {
         List<StreamWriter> usuarios = new List<StreamWriter>();
         List<string> lista = new List<string>();
+        static readonly private object l = new object();
         Socket s;
         bool activo = true;
+
         public void initServer()
         {
             bool openPort = false;
@@ -59,6 +61,7 @@ namespace Ejercicio3
 
         public void hiloCliente(object socket)
         {
+            bool bucleActivo = true;
             string usuario;
             string mensaje;
             Socket cliente = (Socket)socket;
@@ -69,14 +72,20 @@ namespace Ejercicio3
             using (StreamReader sr = new StreamReader(ns))
             using (StreamWriter sw = new StreamWriter(ns))
             {
-                usuarios.Add(sw);
+                lock (l)
+                {
+                    usuarios.Add(sw);
+                }
                 string welcome = "Bienvenido al chatroom! Introduce tu nombre de usuario.";
                 sw.WriteLine(welcome);
                 sw.Flush();
                 usuario = sr.ReadLine();
                 if (usuario != null)
                 {
-                    lista.Add($"{usuario}@{ieCliente.Address}");
+                    lock (l)
+                    {
+                        lista.Add($"{usuario}@{ieCliente.Address}");
+                    }
                     Console.WriteLine("{0}@{1} se ha conectado al chat!",
                     usuario, ieCliente.Address);
 
@@ -84,87 +93,102 @@ namespace Ejercicio3
                     usuario, ieCliente.Address);
                     sw.Flush();
 
-                    foreach (var usuarioChat in usuarios)
-                    {
-                        if (usuarioChat != sw)
-                        {
-                            usuarioChat.WriteLine("{0}@{1} se ha conectado al chat!", usuario, ieCliente.Address);
-                            usuarioChat.Flush();
-                        }
+                    bucleUsuarios(sw, string.Format("{0}@{1} se ha conectado al chat!", usuario, ieCliente.Address));
 
-
-                    }
                 }
                 else
                 {
                     cliente.Close();
                 }
-                while (true)
+                while (bucleActivo)
                 {
                     try
                     {
                         mensaje = sr.ReadLine();
                         if (mensaje != null)
                         {
-                            if (mensaje=="#exit")
+                            if (mensaje == "#exit")
                             {
-                                lista.Remove($"{usuario}@{ieCliente.Address}");
-                                cliente.Close();
-
-                            } else if (mensaje=="#list")
-                            {
-                                foreach (string usuarioLista in lista)
+                                lock (l)
                                 {
-                                    sw.WriteLine(usuarioLista);
-                                    sw.Flush();
+                                    lista.Remove($"{usuario}@{ieCliente.Address}");
                                 }
-                            } else
+                                bucleActivo = false;
+
+                            }
+                            else if (mensaje == "#list")
+                            {
+                                bucleLista(sw);
+                            }
+                            else
                             {
                                 Console.WriteLine(mensaje);
-                                foreach (var usuarioChat in usuarios)
-                                {
-                                    if (usuarioChat != sw)
-                                    {
-                                        usuarioChat.WriteLine(mensaje);
-                                        usuarioChat.Flush();
-                                    }
-
-
-                                }
+                                bucleUsuarios(sw, mensaje);
                             }
-                            
-                        } else
+
+                        }
+                        else
                         {
-                            lista.Remove($"{usuario}@{ieCliente.Address}");
-                            cliente.Close();
+                            lock (l)
+                            {
+                                lista.Remove($"{usuario}@{ieCliente.Address}");
+                            }
+                            bucleActivo = false;
 
                         }
                     }
                     catch (IOException)
                     {
-
-                        lista.Remove($"{usuario}@{ieCliente.Address}");
-                        cliente.Close();
+                        lock (l)
+                        {
+                            lista.Remove($"{usuario}@{ieCliente.Address}");
+                        }
+                        bucleActivo = false;
                         break;
                     }
+
                 }
                 Console.WriteLine("Finished connection with {0}:{1}",
                 ieCliente.Address, ieCliente.Port);
 
+                bucleUsuarios(sw, string.Format("Finished connection with {0}@{1}", usuario, ieCliente.Address));
+                cliente.Close();
+                lock (l)
+                {
+                    usuarios.Remove(sw);
+                }
+            }
+            cliente.Close();
+        }
+
+        public void bucleUsuarios(StreamWriter sw, string mensaje)
+        {
+            lock (l)
+            {
                 foreach (var usuarioChat in usuarios)
                 {
                     if (usuarioChat != sw)
                     {
-                        usuarioChat.WriteLine("Finished connection with {0}@{1}",usuario, ieCliente.Address);
+                        usuarioChat.WriteLine(mensaje);
                         usuarioChat.Flush();
                     }
 
 
                 }
-                cliente.Close();
-                usuarios.Remove(sw);
-            } 
-            cliente.Close();
+            }
+
+        }
+
+        public void bucleLista(StreamWriter sw)
+        {
+            lock (l)
+            {
+                foreach (string usuarioLista in lista)
+                {
+                    sw.WriteLine(usuarioLista);
+                    sw.Flush();
+                }
+            }
         }
 
 
