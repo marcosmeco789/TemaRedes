@@ -10,7 +10,7 @@ namespace Ejercicio4
     {
         static void Main(string[] args)
         {
-            Server s = new Server();
+            ShiftServer s = new ShiftServer();
 
             s.init();
         }
