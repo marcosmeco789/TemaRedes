@@ -17,6 +17,7 @@ namespace Ejercicio4
         bool activo = true;
         string[] users;
         List<string> waitQueue = new List<string>();
+        List<string> userWaitNames = new List<string>();
 
         public void ReadNames(string nombreArchivoRead)
         {
@@ -36,13 +37,13 @@ namespace Ejercicio4
 
         }
 
-        public int ReadPin(string nombreArchivoPin)
+        public int ReadPin()
         {
             string contraseñaString = "";
             int contraseña;
             try
             {
-                using (BinaryReader br = new BinaryReader(new FileStream(Environment.GetEnvironmentVariable("userprofile") + "\\" + nombreArchivoPin, FileMode.Open)))
+                using (BinaryReader br = new BinaryReader(new FileStream(Environment.GetEnvironmentVariable("userprofile") + "\\pin.bin", FileMode.Open)))
                 {
 
                     contraseñaString = br.ReadString();
@@ -116,37 +117,93 @@ namespace Ejercicio4
             }
         }
 
-        public void admin(StreamWriter sw, StreamReader sr)
+        public void admin(StreamWriter sw, StreamReader sr, Socket cliente, Socket s)
         {
             string mensaje;
             string[] partes;
+            int pin;
+            bool pararBucle = false;
+            bool parseExitoso;
             sw.WriteLine("Bienvenido a la consola de administrador. Los comandos disponibles son 'del pos', 'chpin pin', 'exit' y 'shutdown'");
-            mensaje = sr.ReadLine();
-            partes = mensaje.Split(' ');
-            switch (partes[0])
+            sw.Flush();
+
+            while (pararBucle)
             {
-                case "del":
-                    if (partes.Length>1)
-                    {
-                        waitQueue.RemoveAt(int.Parse(partes[1]));
-                    }
-                    break;
+                mensaje = sr.ReadLine();
+                partes = mensaje.Split(' ');
+                switch (partes[0])
+                {
+                    case "del":
+                        if (partes.Length > 1)
+                        {
+                            waitQueue.RemoveAt(int.Parse(partes[1]));
+                            userWaitNames.RemoveAt(int.Parse(partes[1]));
+                        }
+                        break;
 
-                case "chpin":
+                    case "chpin":
+                        if (partes.Length > 1)
+                        {
+                            parseExitoso = int.TryParse(partes[1], out pin);
+                            if (partes[1].Length >= 4 && parseExitoso)
+                            {
+                                try
+                                {
+                                    using (BinaryWriter bw = new BinaryWriter(new FileStream(Environment.GetEnvironmentVariable("userprofile") + "\\pin.bin", FileMode.Create)))
+                                    {
+                                        bw.Write(pin);
+                                    }
+                                    sw.WriteLine("Pin establecido correctamente");
+                                    sw.Flush();
+                                }
 
-                    break;
+                                catch (Exception ex) when (ex is ArgumentException || ex is NotSupportedException || ex is ArgumentNullException || ex is SecurityException ||
+                                ex is FileNotFoundException || ex is IOException || ex is DirectoryNotFoundException || ex is PathTooLongException || ex is ArgumentOutOfRangeException)
+                                {
+                                    sw.WriteLine("Error al establecer el pin");
+                                    sw.Flush();
+                                }
 
-                case "exit":
-                    
-                    break;
 
-                case "shutdown":
+                            }
+                        }
 
-                    break;
+                        break;
 
-                default:
-                    break;
+                    case "exit":
+                        pararBucle = true;
+                        cliente.Close();
+                        break;
+
+                    case "shutdown":
+                        try
+                        {
+                            pararBucle = true;
+                            s.Close();
+                            using (StreamWriter swLista = new StreamWriter(Environment.GetEnvironmentVariable("userprofile") + "\\listaEspera.txt", false))
+                            {
+                                foreach (string usuarioEnEspera in waitQueue)
+                                {
+                                    swLista.WriteLine(usuarioEnEspera);
+                                    swLista.Flush();
+                                }
+                            }
+                        }
+                        catch (Exception ex) when (ex is UnauthorizedAccessException || ex is ArgumentException || ex is ArgumentNullException ||
+                               ex is DirectoryNotFoundException || ex is IOException || ex is PathTooLongException || ex is SecurityException)
+                        {
+
+
+                        }
+
+                        break;
+
+                    default:
+                        break;
+                }
+
             }
+
 
         }
 
@@ -156,83 +213,129 @@ namespace Ejercicio4
             string usuario;
             int contraseña;
 
+            string linea;
+
 
             Socket cliente = (Socket)socket;
             IPEndPoint ieCliente = (IPEndPoint)cliente.RemoteEndPoint;
             Console.WriteLine("Connected with client {0} at port {1}",
             ieCliente.Address, ieCliente.Port);
+
+            try
+            {
+                using (StreamReader srLista = new StreamReader(Environment.GetEnvironmentVariable("userprofile") + "\\listaEspera.txt"))
+                {
+                    linea = srLista.ReadLine();
+                    while (linea != null)
+                    {
+                        waitQueue.Add(linea);
+                    }
+
+
+                }
+            }
+            catch (Exception ex) when (ex is ArgumentException || ex is ArgumentNullException || ex is FileNotFoundException ||
+                   ex is DirectoryNotFoundException || ex is IOException)
+            {
+
+
+            }
+
+
+
             using (NetworkStream ns = new NetworkStream(cliente))
             using (StreamReader sr = new StreamReader(ns))
             using (StreamWriter sw = new StreamWriter(ns))
             {
-                string welcome = "Bienvenido al servidor de turnos! Introduce tu nombre de usuario.";
-                sw.WriteLine(welcome);
-                sw.Flush();
-                usuario = sr.ReadLine();
-                if (usuario != null)
+                try
                 {
-                    ReadNames("usuarios.txt");
-                    if (usuario == "admin")
-                    {
-                        sw.WriteLine("Introduce la contraseña de admin");
-                        sw.Flush();
-                        mensaje = sr.ReadLine();
 
-                        int.TryParse(mensaje, out contraseña);
-                        if (ReadPin("pin.bin") == -1)
+
+
+                    string welcome = "Bienvenido al servidor de turnos! Introduce tu nombre de usuario.";
+                    sw.WriteLine(welcome);
+                    sw.Flush();
+                    usuario = sr.ReadLine();
+                    if (usuario != null)
+                    {
+                        ReadNames("usuarios.txt");
+                        if (usuario == "admin")
                         {
-                            contraseña = 1234;
-                            admin(sw, sr);
+                            sw.WriteLine("Introduce la contraseña de admin");
+                            sw.Flush();
+                            mensaje = sr.ReadLine();
+
+                            int.TryParse(mensaje, out contraseña);
+                            if (ReadPin() == -1)
+                            {
+                                contraseña = 1234;
+                                admin(sw, sr, cliente, s);
+
+                            }
+                            else if (contraseña == ReadPin())
+                            {
+                                admin(sw, sr, cliente, s);
+
+                            }
+                            else
+                            {
+                                cliente.Close();
+                            }
 
                         }
-                        else if (contraseña == ReadPin("pin.bin"))
+                        else if (users.Contains(usuario))
                         {
-                            admin(sw, sr);
+                            sw.WriteLine("En la lista! Los comandos disponibles son list y add\n");
+                            sw.Flush();
+                            mensaje = sr.ReadLine();
+
+                            if (mensaje == "list")
+                            {
+                                foreach (string usuarioEnLista in waitQueue)
+                                {
+                                    sw.WriteLine(usuarioEnLista);
+                                    sw.Flush();
+
+                                }
+                            }
+                            else if (mensaje == "add")
+                            {
+
+
+                                if (!userWaitNames.Contains(usuario))
+                                {
+                                    userWaitNames.Add(usuario);
+                                    waitQueue.Add(usuario + " - " + DateTime.Now.ToString());
+                                    sw.WriteLine("OK");
+                                    sw.Flush();
+                                }
+                                else
+                                {
+                                    sw.WriteLine("Ya estas en la lista!");
+                                    sw.Flush();
+                                }
+
+                            }
+                            else
+                            {
+                                cliente.Close();
+                            }
 
                         }
                         else
                         {
-                            cliente.Close();
+                            sw.WriteLine("Usuario desconocido");
+                            sw.Flush();
                         }
-
                     }
-                    else if (users.Contains(usuario))
-                    {
-                        sw.WriteLine("En la lista! Los comandos disponibles son list y add\n");
-                        sw.Flush();
-                        mensaje = sr.ReadLine();
 
-                        if (mensaje == "list")
-                        {
-                            foreach (string usuarioEnLista in waitQueue)
-                            {
-                                sw.WriteLine(usuarioEnLista);
-                                sw.Flush();
-                            }
-                        }
-                        else if (mensaje == "add")
-                        {
-                            if (!waitQueue.Contains(usuario))
-                            {
-                                waitQueue.Add(usuario + " - " + DateTime.Now.ToString());
-                                sw.WriteLine("OK");
-                                sw.Flush();
-                            }
+                }
+                catch (IOException)
+                {
 
-                        }
-                        else
-                        {
-                            cliente.Close();
-                        }
-
-                    }
-                    else
-                    {
-                        sw.WriteLine("Usuario desconocido");
-                        sw.Flush();
-                    }
                 }
                 cliente.Close();
+                Console.WriteLine("Se ha desconectado: " + ieCliente.Address, ieCliente.Port);
             }
         }
     }
