@@ -18,6 +18,7 @@ namespace Ejercicio4
         string[] users;
         List<string> waitQueue = new List<string>();
         List<string> userWaitNames = new List<string>();
+        private static readonly object l = new object();
 
         public void ReadNames(string nombreArchivoRead)
         {
@@ -94,7 +95,10 @@ namespace Ejercicio4
                             {
                                 if (!waitQueue.Contains(linea))
                                 {
-                                    waitQueue.Add(linea);
+                                    lock (l)
+                                    {
+                                        waitQueue.Add(linea);
+                                    }
                                 }
                             }
                         }
@@ -103,7 +107,11 @@ namespace Ejercicio4
                         {
                             string[] usuarioSplit;
                             usuarioSplit = contenidoWaitQueue.Split(' ');
-                            userWaitNames.Add(usuarioSplit[0]);
+                            lock (l)
+                            {
+                                userWaitNames.Add(usuarioSplit[0]);
+                            }
+                            
                         }
                     }
                     catch (Exception ex) when (ex is ArgumentException || ex is ArgumentNullException || ex is FileNotFoundException ||
@@ -168,8 +176,11 @@ namespace Ejercicio4
                             {
                                 try
                                 {
-                                    waitQueue.RemoveAt(int.Parse(partes[1]));
-                                    userWaitNames.RemoveAt(int.Parse(partes[1]));
+                                    lock (l)
+                                    {
+                                        waitQueue.RemoveAt(int.Parse(partes[1]));
+                                        userWaitNames.RemoveAt(int.Parse(partes[1]));
+                                    }
                                     sw.WriteLine("OK");
                                     sw.Flush();
                                 }
@@ -328,8 +339,11 @@ namespace Ejercicio4
                             {
                                 if (!userWaitNames.Contains(usuario))
                                 {
-                                    userWaitNames.Add(usuario);
-                                    waitQueue.Add(usuario + " - " + DateTime.Now.ToString());
+                                    lock (l)
+                                    {
+                                        userWaitNames.Add(usuario);
+                                        waitQueue.Add(usuario + " - " + DateTime.Now.ToString());
+                                    }
                                     sw.WriteLine("OK");
                                     sw.Flush();
                                 }
@@ -353,7 +367,7 @@ namespace Ejercicio4
                 }
                 catch (IOException)
                 {
-                    // Manejo de excepciones
+                    
                 }
                 cliente.Close();
                 Console.WriteLine("Se ha desconectado: " + ieCliente.Address, ieCliente.Port);
