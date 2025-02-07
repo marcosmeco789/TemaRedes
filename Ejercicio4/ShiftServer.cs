@@ -45,9 +45,7 @@ namespace Ejercicio4
             {
                 using (BinaryReader br = new BinaryReader(new FileStream(Environment.GetEnvironmentVariable("userprofile") + "\\pin.bin", FileMode.Open)))
                 {
-
                     contraseñaString = br.ReadString();
-
                 }
 
                 if (contraseñaString.Length != 4)
@@ -73,6 +71,7 @@ namespace Ejercicio4
         {
             bool openPort = false;
             int port = 31416;
+            string linea;
 
             while (!openPort)
             {
@@ -84,6 +83,34 @@ namespace Ejercicio4
                     s.Listen(10);
                     Console.WriteLine("Server waiting at port {0}", ie.Port);
                     openPort = true;
+
+
+                    try
+                    {
+                        using (StreamReader srLista = new StreamReader(Environment.GetEnvironmentVariable("userprofile") + "\\listaEspera.txt"))
+                        {
+
+                            while ((linea = srLista.ReadLine()) != null)
+                            {
+                                if (!waitQueue.Contains(linea))
+                                {
+                                    waitQueue.Add(linea);
+                                }
+                            }
+                        }
+
+                        foreach (string contenidoWaitQueue in waitQueue)
+                        {
+                            string[] usuarioSplit;
+                            usuarioSplit = contenidoWaitQueue.Split(' ');
+                            userWaitNames.Add(usuarioSplit[0]);
+                        }
+                    }
+                    catch (Exception ex) when (ex is ArgumentException || ex is ArgumentNullException || ex is FileNotFoundException ||
+                           ex is DirectoryNotFoundException || ex is IOException)
+                    {
+
+                    }
 
                 }
                 catch (SocketException e)
@@ -127,84 +154,108 @@ namespace Ejercicio4
             sw.WriteLine("Bienvenido a la consola de administrador. Los comandos disponibles son 'del pos', 'chpin pin', 'exit' y 'shutdown'");
             sw.Flush();
 
-            while (pararBucle)
+            while (!pararBucle)
             {
                 mensaje = sr.ReadLine();
-                partes = mensaje.Split(' ');
-                switch (partes[0])
+                if (!string.IsNullOrEmpty(mensaje))
                 {
-                    case "del":
-                        if (partes.Length > 1)
-                        {
-                            waitQueue.RemoveAt(int.Parse(partes[1]));
-                            userWaitNames.RemoveAt(int.Parse(partes[1]));
-                        }
-                        break;
+                    partes = mensaje.Split(' ');
 
-                    case "chpin":
-                        if (partes.Length > 1)
-                        {
-                            parseExitoso = int.TryParse(partes[1], out pin);
-                            if (partes[1].Length >= 4 && parseExitoso)
+                    switch (partes[0])
+                    {
+                        case "del":
+                            if (partes.Length > 1)
                             {
                                 try
                                 {
-                                    using (BinaryWriter bw = new BinaryWriter(new FileStream(Environment.GetEnvironmentVariable("userprofile") + "\\pin.bin", FileMode.Create)))
-                                    {
-                                        bw.Write(pin);
-                                    }
-                                    sw.WriteLine("Pin establecido correctamente");
+                                    waitQueue.RemoveAt(int.Parse(partes[1]));
+                                    userWaitNames.RemoveAt(int.Parse(partes[1]));
+                                    sw.WriteLine("OK");
+                                    sw.Flush();
+                                }
+                                catch (Exception ex) when (ex is FormatException || ex is ArgumentOutOfRangeException)
+                                {
+                                    sw.WriteLine("Error al eliminar");
                                     sw.Flush();
                                 }
 
-                                catch (Exception ex) when (ex is ArgumentException || ex is NotSupportedException || ex is ArgumentNullException || ex is SecurityException ||
-                                ex is FileNotFoundException || ex is IOException || ex is DirectoryNotFoundException || ex is PathTooLongException || ex is ArgumentOutOfRangeException)
+                            }
+                            break;
+
+                        case "chpin":
+                            if (partes.Length > 1)
+                            {
+                                parseExitoso = int.TryParse(partes[1], out pin);
+                                if (partes[1].Length >= 4 && parseExitoso)
+                                {
+                                    try
+                                    {
+                                        using (BinaryWriter bw = new BinaryWriter(new FileStream(Environment.GetEnvironmentVariable("userprofile") + "\\pin.bin", FileMode.Create)))
+                                        {
+                                            bw.Write(pin.ToString());
+                                        }
+                                        sw.WriteLine("Pin establecido correctamente");
+                                        sw.Flush();
+                                    }
+
+                                    catch (Exception ex) when (ex is ArgumentException || ex is NotSupportedException || ex is ArgumentNullException || ex is SecurityException ||
+                                    ex is FileNotFoundException || ex is IOException || ex is DirectoryNotFoundException || ex is PathTooLongException || ex is ArgumentOutOfRangeException)
+                                    {
+                                        sw.WriteLine("Error al establecer el pin");
+                                        sw.Flush();
+                                    }
+
+
+                                } else
                                 {
                                     sw.WriteLine("Error al establecer el pin");
                                     sw.Flush();
                                 }
-
-
                             }
-                        }
 
-                        break;
 
-                    case "exit":
-                        pararBucle = true;
-                        cliente.Close();
-                        break;
+                            break;
 
-                    case "shutdown":
-                        try
-                        {
+                        case "exit":
                             pararBucle = true;
-                            s.Close();
-                            using (StreamWriter swLista = new StreamWriter(Environment.GetEnvironmentVariable("userprofile") + "\\listaEspera.txt", false))
+                            cliente.Close();
+                            break;
+
+                        case "shutdown":
+                            try
                             {
-                                foreach (string usuarioEnEspera in waitQueue)
+                                pararBucle = true;
+                                activo = false;
+
+                                using (StreamWriter swLista = new StreamWriter(Environment.GetEnvironmentVariable("userprofile") + "\\listaEspera.txt", false))
                                 {
-                                    swLista.WriteLine(usuarioEnEspera);
-                                    swLista.Flush();
+                                    foreach (string usuarioEnEspera in waitQueue)
+                                    {
+                                        swLista.WriteLine(usuarioEnEspera);
+                                        swLista.Flush();
+                                    }
                                 }
+
+                                cliente.Close();
+                                s.Close();
                             }
-                        }
-                        catch (Exception ex) when (ex is UnauthorizedAccessException || ex is ArgumentException || ex is ArgumentNullException ||
-                               ex is DirectoryNotFoundException || ex is IOException || ex is PathTooLongException || ex is SecurityException)
-                        {
+                            catch (Exception ex) when (ex is UnauthorizedAccessException || ex is ArgumentException || ex is ArgumentNullException ||
+                                   ex is DirectoryNotFoundException || ex is IOException || ex is PathTooLongException || ex is SecurityException)
+                            {
 
 
-                        }
+                            }
 
-                        break;
+                            break;
 
-                    default:
-                        break;
+                        default:
+                            break;
+                    }
+
                 }
 
+
             }
-
-
         }
 
         public void hiloCliente(object socket)
@@ -213,33 +264,12 @@ namespace Ejercicio4
             string usuario;
             int contraseña;
 
-            string linea;
 
 
             Socket cliente = (Socket)socket;
             IPEndPoint ieCliente = (IPEndPoint)cliente.RemoteEndPoint;
             Console.WriteLine("Connected with client {0} at port {1}",
             ieCliente.Address, ieCliente.Port);
-
-            try
-            {
-                using (StreamReader srLista = new StreamReader(Environment.GetEnvironmentVariable("userprofile") + "\\listaEspera.txt"))
-                {
-                    linea = srLista.ReadLine();
-                    while (linea != null)
-                    {
-                        waitQueue.Add(linea);
-                    }
-
-
-                }
-            }
-            catch (Exception ex) when (ex is ArgumentException || ex is ArgumentNullException || ex is FileNotFoundException ||
-                   ex is DirectoryNotFoundException || ex is IOException)
-            {
-
-
-            }
 
 
 
@@ -249,9 +279,6 @@ namespace Ejercicio4
             {
                 try
                 {
-
-
-
                     string welcome = "Bienvenido al servidor de turnos! Introduce tu nombre de usuario.";
                     sw.WriteLine(welcome);
                     sw.Flush();
@@ -266,22 +293,22 @@ namespace Ejercicio4
                             mensaje = sr.ReadLine();
 
                             int.TryParse(mensaje, out contraseña);
-                            if (ReadPin() == -1)
+                            if (ReadPin() == -1 && contraseña == 1234)
                             {
-                                contraseña = 1234;
                                 admin(sw, sr, cliente, s);
-
                             }
-                            else if (contraseña == ReadPin())
+                            else if ((ReadPin() == -1 && contraseña != 1234))
+                            {
+                                cliente.Close();
+                            }
+                            else if (ReadPin() == contraseña)
                             {
                                 admin(sw, sr, cliente, s);
-
                             }
                             else
                             {
                                 cliente.Close();
                             }
-
                         }
                         else if (users.Contains(usuario))
                         {
@@ -295,13 +322,10 @@ namespace Ejercicio4
                                 {
                                     sw.WriteLine(usuarioEnLista);
                                     sw.Flush();
-
                                 }
                             }
                             else if (mensaje == "add")
                             {
-
-
                                 if (!userWaitNames.Contains(usuario))
                                 {
                                     userWaitNames.Add(usuario);
@@ -314,13 +338,11 @@ namespace Ejercicio4
                                     sw.WriteLine("Ya estas en la lista!");
                                     sw.Flush();
                                 }
-
                             }
                             else
                             {
                                 cliente.Close();
                             }
-
                         }
                         else
                         {
@@ -328,11 +350,10 @@ namespace Ejercicio4
                             sw.Flush();
                         }
                     }
-
                 }
                 catch (IOException)
                 {
-
+                    // Manejo de excepciones
                 }
                 cliente.Close();
                 Console.WriteLine("Se ha desconectado: " + ieCliente.Address, ieCliente.Port);
