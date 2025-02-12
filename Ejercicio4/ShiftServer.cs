@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 
 namespace Ejercicio4
 {
-    internal class ShiftServer
+    internal class ShiftServer //IsBackground. Admin con list y add. locks
     {
         Socket s;
         bool activo = true;
@@ -93,9 +93,9 @@ namespace Ejercicio4
 
                             while ((linea = srLista.ReadLine()) != null)
                             {
-                                if (!waitQueue.Contains(linea))
+                                //   lock (l)
                                 {
-                                    lock (l)
+                                    if (!waitQueue.Contains(linea))
                                     {
                                         waitQueue.Add(linea);
                                     }
@@ -103,15 +103,15 @@ namespace Ejercicio4
                             }
                         }
 
-                        foreach (string contenidoWaitQueue in waitQueue)
+                        // lock (l)
                         {
-                            string[] usuarioSplit;
-                            usuarioSplit = contenidoWaitQueue.Split(' ');
-                            lock (l)
+                            foreach (string contenidoWaitQueue in waitQueue)
                             {
+                                string[] usuarioSplit;
+                                usuarioSplit = contenidoWaitQueue.Split(' ');
                                 userWaitNames.Add(usuarioSplit[0]);
+
                             }
-                            
                         }
                     }
                     catch (Exception ex) when (ex is ArgumentException || ex is ArgumentNullException || ex is FileNotFoundException ||
@@ -142,6 +142,7 @@ namespace Ejercicio4
                 {
                     Socket cliente = s.Accept();
                     Thread hilo = new Thread(hiloCliente);
+                    hilo.IsBackground = true;
                     hilo.Start(cliente);
                 }
                 catch (SocketException ex)
@@ -152,14 +153,49 @@ namespace Ejercicio4
             }
         }
 
-        public void admin(StreamWriter sw, StreamReader sr, Socket cliente, Socket s)
+        public void list(StreamWriter sw)
+        {
+            lock (l)
+            {
+                foreach (string usuarioEnLista in waitQueue)
+                {
+                    sw.WriteLine("[" + waitQueue.IndexOf(usuarioEnLista) + "] " + usuarioEnLista);
+                    sw.Flush();
+                }
+            }
+
+        }
+
+        public void add(StreamWriter sw, string usuario)
+        {
+            lock (l)
+            {
+                if (!userWaitNames.Contains(usuario))
+                {
+                    
+                        userWaitNames.Add(usuario);
+                        waitQueue.Add(usuario + " - " + DateTime.Now.ToString());
+                    
+                    sw.WriteLine("OK");
+                    sw.Flush();
+                }
+                else
+                {
+                    sw.WriteLine("Ya estas en la lista!");
+                    sw.Flush();
+                }
+            }
+        }
+
+
+        public void admin(StreamWriter sw, StreamReader sr, Socket cliente, Socket s, string usuario)
         {
             string mensaje;
             string[] partes;
             int pin;
             bool pararBucle = false;
             bool parseExitoso;
-            sw.WriteLine("Bienvenido a la consola de administrador. Los comandos disponibles son 'del pos', 'chpin pin', 'exit' y 'shutdown'");
+            sw.WriteLine("Bienvenido a la consola de administrador. Los comandos disponibles son 'add', 'list', 'del pos', 'chpin pin', 'exit' y 'shutdown'");
             sw.Flush();
 
             while (!pararBucle)
@@ -171,6 +207,15 @@ namespace Ejercicio4
 
                     switch (partes[0])
                     {
+
+                        case "list":
+                            list(sw);
+                            break;
+
+                        case "add":
+                            add(sw, usuario);
+                            break;
+
                         case "del":
                             if (partes.Length > 1)
                             {
@@ -217,7 +262,8 @@ namespace Ejercicio4
                                     }
 
 
-                                } else
+                                }
+                                else
                                 {
                                     sw.WriteLine("Error al establecer el pin");
                                     sw.Flush();
@@ -240,11 +286,15 @@ namespace Ejercicio4
 
                                 using (StreamWriter swLista = new StreamWriter(Environment.GetEnvironmentVariable("userprofile") + "\\listaEspera.txt", false))
                                 {
-                                    foreach (string usuarioEnEspera in waitQueue)
+                                    lock (l)
                                     {
-                                        swLista.WriteLine(usuarioEnEspera);
-                                        swLista.Flush();
+                                        foreach (string usuarioEnEspera in waitQueue)
+                                        {
+                                            swLista.WriteLine(usuarioEnEspera);
+                                            swLista.Flush();
+                                        }
                                     }
+
                                 }
 
                                 cliente.Close();
@@ -306,7 +356,7 @@ namespace Ejercicio4
                             int.TryParse(mensaje, out contraseña);
                             if (ReadPin() == -1 && contraseña == 1234)
                             {
-                                admin(sw, sr, cliente, s);
+                                admin(sw, sr, cliente, s, usuario);
                             }
                             else if ((ReadPin() == -1 && contraseña != 1234))
                             {
@@ -314,7 +364,7 @@ namespace Ejercicio4
                             }
                             else if (ReadPin() == contraseña)
                             {
-                                admin(sw, sr, cliente, s);
+                                admin(sw, sr, cliente, s, usuario);
                             }
                             else
                             {
@@ -329,29 +379,12 @@ namespace Ejercicio4
 
                             if (mensaje == "list")
                             {
-                                foreach (string usuarioEnLista in waitQueue)
-                                {
-                                    sw.WriteLine(usuarioEnLista);
-                                    sw.Flush();
-                                }
+                                list(sw);
                             }
                             else if (mensaje == "add")
                             {
-                                if (!userWaitNames.Contains(usuario))
-                                {
-                                    lock (l)
-                                    {
-                                        userWaitNames.Add(usuario);
-                                        waitQueue.Add(usuario + " - " + DateTime.Now.ToString());
-                                    }
-                                    sw.WriteLine("OK");
-                                    sw.Flush();
-                                }
-                                else
-                                {
-                                    sw.WriteLine("Ya estas en la lista!");
-                                    sw.Flush();
-                                }
+
+                                add(sw, usuario);
                             }
                             else
                             {
@@ -367,7 +400,7 @@ namespace Ejercicio4
                 }
                 catch (IOException)
                 {
-                    
+
                 }
                 cliente.Close();
                 Console.WriteLine("Se ha desconectado: " + ieCliente.Address, ieCliente.Port);
