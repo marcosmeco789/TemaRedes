@@ -70,85 +70,97 @@ namespace Ejercicio1
                 sw.WriteLine(welcome);
                 sw.Flush();
 
+
+
                 try
                 {
                     mensaje = sr.ReadLine();
-                    string[] partes = mensaje.Split(' ');
-
-                    switch (partes[0])
+                    if (!string.IsNullOrEmpty(mensaje))
                     {
-                        case "time":
-                            sw.WriteLine(DateTime.Now.ToString("HH:mm") + "\n");
-                            sw.WriteLine("Pulsa enter para cerrar!");
-                            sw.Flush();
-                            cliente.Close();
-                            sr.ReadLine();
-                            break;
+                        string[] partes = mensaje.Split(' ');
+                        switch (partes[0])
+                        {
+                            case "time":
+                                sw.WriteLine(DateTime.Now.ToString("HH:mm") + "\n");
+                                sw.WriteLine("Pulsa enter para cerrar!");
+                                sw.Flush();
+                                cliente.Close();
+                                sr.ReadLine();
+                                break;
 
-                        case "date":
-                            sw.WriteLine(DateTime.Now.ToString("d") + "\n");
-                            sw.WriteLine("Pulsa enter para cerrar!");
-                            sw.Flush();
-                            cliente.Close();
-                            sr.ReadLine();
-                            break;
+                            case "date":
+                                sw.WriteLine(DateTime.Now.ToString("d") + "\n");
+                                sw.WriteLine("Pulsa enter para cerrar!");
+                                sw.Flush();
+                                cliente.Close();
+                                sr.ReadLine();
+                                break;
 
-                        case "all":
-                            sw.WriteLine(DateTime.Now + "\n");
-                            sw.WriteLine("Pulsa enter para cerrar!");
-                            sw.Flush();
-                            cliente.Close();
-                            sr.ReadLine();
-                            break;
+                            case "all":
+                                sw.WriteLine(DateTime.Now + "\n");
+                                sw.WriteLine("Pulsa enter para cerrar!");
+                                sw.Flush();
+                                cliente.Close();
+                                sr.ReadLine();
+                                break;
 
-                        case "close":
-                            if (partes.Length > 1)
-                            {
-                                string intento = partes[1];
-
-                                try
+                            case "close":
+                                if (partes.Length > 1)
                                 {
-                                    using (StreamReader srp = new StreamReader(Environment.GetEnvironmentVariable("programdata") + "\\serverPassword.txt"))
-                                    {
-                                        string password = srp.ReadLine();
+                                    string intento = partes[1];
 
-                                        if (password == intento)
+                                    try
+                                    {
+                                        using (StreamReader srp = new StreamReader(Environment.GetEnvironmentVariable("programdata") + "\\serverPassword.txt"))
                                         {
-                                            sw.WriteLine("Cerrando");
-                                            sw.Flush();
-                                            activo = false;
-                                            s.Close();
-                                        }
-                                        else
-                                        {
-                                            sw.WriteLine("Contraseña incorrecta!\n");
-                                            sw.Flush();
-                                            cliente.Close();
-                                            sr.ReadLine();
+                                            string password = srp.ReadLine();
+
+                                            if (password == intento)
+                                            {
+                                                sw.WriteLine("Cerrando");
+                                                sw.Flush();
+                                                activo = false;
+                                                s.Close();
+                                            }
+                                            else
+                                            {
+                                                sw.WriteLine("Contraseña incorrecta!\n");
+                                                sw.Flush();
+                                                cliente.Close();
+                                                sr.ReadLine();
+                                            }
                                         }
                                     }
+                                    catch (Exception ex) when (ex is ArgumentException || ex is ArgumentNullException || ex is FileNotFoundException || ex is DirectoryNotFoundException)
+                                    {
+                                        sw.WriteLine("Error en el archivo");
+                                        sw.Flush();
+                                        cliente.Close();
+                                    }
                                 }
-                                catch (Exception ex) when (ex is ArgumentException || ex is ArgumentNullException || ex is FileNotFoundException || ex is DirectoryNotFoundException)
+                                else
                                 {
-                                    sw.WriteLine("Error en el archivo");
+                                    sw.WriteLine("Comando incorrecto, falta la contraseña!");
                                     sw.Flush();
                                     cliente.Close();
                                 }
-                            }
-                            else
-                            {
-                                sw.WriteLine("Comando incorrecto, falta la contraseña!");
+                                break;
+
+                            default:
+                                sw.WriteLine("Comando no encontrado, pulsa enter para cerrar!");
                                 sw.Flush();
                                 cliente.Close();
-                            }
-                            break;
-
-                        default:
-                            sw.WriteLine("Comando no encontrado, pulsa enter para cerrar!");
-                            sw.Flush();
-                            cliente.Close();
-                            break;
+                                break;
+                        }
                     }
+                    else
+                    {
+                        sw.WriteLine("Mensaje vacío, conexión cerrada.");
+                        sw.Flush();
+                        cliente.Close();
+                    }
+
+                   
                 }
                 catch (IOException e)
                 {
