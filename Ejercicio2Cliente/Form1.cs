@@ -22,6 +22,33 @@ namespace Ejercicio2Cliente
         public Form1()
         {
             InitializeComponent();
+            cargarConfiguracion();
+        }
+
+        public void cargarConfiguracion()
+        {
+            using (StreamReader sr = new StreamReader(Environment.GetEnvironmentVariable("userprofile") + "\\configuracionCliente.txt"))
+            {
+                textBox1.Text = sr.ReadLine();
+                IP_SERVER = sr.ReadLine();
+                PUERTO = int.Parse(sr.ReadLine());
+            }
+        }
+
+        public void guardarConfiguracion()
+        {
+            using (StreamWriter sw = new StreamWriter(Environment.GetEnvironmentVariable("userprofile") + "\\configuracionCliente.txt"))
+            {
+                sw.WriteLine(textBox1.Text);
+                sw.Flush();
+
+                sw.WriteLine(IP_SERVER);
+                sw.Flush();
+
+                sw.WriteLine(PUERTO);
+                sw.Flush();
+
+            }
         }
 
         public void conexion(object sender)
@@ -48,7 +75,59 @@ namespace Ejercicio2Cliente
             using (StreamReader sr = new StreamReader(ns))
             using (StreamWriter sw = new StreamWriter(ns))
             {
+                sr.ReadLine();
 
+                if (((Button)sender).Tag.ToString() == "add")
+                {
+                    sw.WriteLine(textBox1.Text);
+                    sw.Flush();
+                    msg = sr.ReadLine();
+
+                    if (msg != "Usuario desconocido")
+                    {
+                        sr.ReadLine();
+                        sw.WriteLine("add");
+                        sw.Flush();
+                        msg = sr.ReadLine();
+                        MessageBox.Show(msg, "Info", MessageBoxButtons.OK, MessageBoxIcon.Information);
+
+                    }
+                    else
+                    {
+                        MessageBox.Show(msg, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    }
+
+                }
+                else
+                {
+                    listBox1.Items.Clear();
+                    sw.WriteLine(textBox1.Text);
+                    sw.Flush();
+                    msg = sr.ReadLine();
+
+                    if (msg != "Usuario desconocido")
+                    {
+                        sr.ReadLine();
+                        sw.WriteLine("list");
+                        sw.Flush();
+                        while (msg!=null)
+                        {
+                            msg = sr.ReadLine();
+
+                            if (msg != null)
+                            {
+                                listBox1.Items.Add(msg);
+                            }
+                            
+                        }
+
+
+                    }
+                    else
+                    {
+                        MessageBox.Show(msg, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    }
+                }
             }
         }
 
@@ -61,5 +140,15 @@ namespace Ejercicio2Cliente
             PUERTO = form2.Puerto;
         }
 
+        private void btnAñadir_Click(object sender, EventArgs e)
+        {
+            conexion(sender);
+        }
+
+        private void Form1_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            guardarConfiguracion();
+            
+        }
     }
 }

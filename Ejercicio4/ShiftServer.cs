@@ -93,7 +93,7 @@ namespace Ejercicio4
 
                             while ((linea = srLista.ReadLine()) != null)
                             {
-                                //   lock (l)
+
                                 {
                                     if (!waitQueue.Contains(linea))
                                     {
@@ -103,7 +103,7 @@ namespace Ejercicio4
                             }
                         }
 
-                        // lock (l)
+
                         {
                             foreach (string contenidoWaitQueue in waitQueue)
                             {
@@ -172,10 +172,10 @@ namespace Ejercicio4
             {
                 if (!userWaitNames.Contains(usuario))
                 {
-                    
-                        userWaitNames.Add(usuario);
-                        waitQueue.Add(usuario + " - " + DateTime.Now.ToString());
-                    
+
+                    userWaitNames.Add(usuario);
+                    waitQueue.Add(usuario + " - " + DateTime.Now.ToString());
+
                     sw.WriteLine("OK");
                     sw.Flush();
                 }
