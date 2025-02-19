@@ -4,17 +4,17 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Ejercicio4
+namespace Ejercicio5
 {
     internal class Program
     {
         static void Main(string[] args)
         {
-            ShiftServer s = new ShiftServer();
+            {
+                ShiftServer s = new ShiftServer();
 
-            s.init();
-
-            
+                s.init();
+            }
         }
     }
 }
