@@ -27,28 +27,47 @@ namespace Ejercicio2Cliente
 
         public void cargarConfiguracion()
         {
-            using (StreamReader sr = new StreamReader(Environment.GetEnvironmentVariable("userprofile") + "\\configuracionCliente.txt"))
+            try
             {
-                textBox1.Text = sr.ReadLine();
-                IP_SERVER = sr.ReadLine();
-                PUERTO = int.Parse(sr.ReadLine());
+                using (StreamReader sr = new StreamReader(Environment.GetEnvironmentVariable("userprofile") + "\\configuracionCliente.txt"))
+                {
+                    textBox1.Text = sr.ReadLine();
+                    IP_SERVER = sr.ReadLine();
+                    PUERTO = int.Parse(sr.ReadLine());
+                }
             }
+            catch (Exception ex) when (ex is ArgumentException || ex is ArgumentNullException || ex is FileNotFoundException || ex is DirectoryNotFoundException || ex is IOException)
+            {
+
+            }
+
         }
 
         public void guardarConfiguracion()
         {
-            using (StreamWriter sw = new StreamWriter(Environment.GetEnvironmentVariable("userprofile") + "\\configuracionCliente.txt"))
+            try
             {
-                sw.WriteLine(textBox1.Text);
-                sw.Flush();
+                using (StreamWriter sw = new StreamWriter(Environment.GetEnvironmentVariable("userprofile") + "\\configuracionCliente.txt"))
+                {
+                    sw.WriteLine(textBox1.Text);
+                    sw.Flush();
 
-                sw.WriteLine(IP_SERVER);
-                sw.Flush();
+                    sw.WriteLine(IP_SERVER);
+                    sw.Flush();
 
-                sw.WriteLine(PUERTO);
-                sw.Flush();
+                    sw.WriteLine(PUERTO);
+                    sw.Flush();
+
+                }
+            }
+            catch (Exception ex) when (ex is UnauthorizedAccessException || ex is ArgumentException || ex is ArgumentNullException ||
+                    ex is DirectoryNotFoundException || ex is PathTooLongException || ex is IOException)
+            {
+
 
             }
+
+
         }
 
         public void conexion(object sender)
@@ -76,41 +95,27 @@ namespace Ejercicio2Cliente
             using (StreamWriter sw = new StreamWriter(ns))
             {
                 sr.ReadLine();
+                string comando = ((Button)sender).Tag.ToString();
+                sw.WriteLine(textBox1.Text);
+                sw.Flush();
+                msg = sr.ReadLine();
 
-                if (((Button)sender).Tag.ToString() == "add")
+                if (msg != "Usuario desconocido")
                 {
-                    sw.WriteLine(textBox1.Text);
+                    sr.ReadLine();
+                    sw.WriteLine(comando);
                     sw.Flush();
-                    msg = sr.ReadLine();
 
-                    if (msg != "Usuario desconocido")
+                    if (comando == "add")
                     {
-                        sr.ReadLine();
-                        sw.WriteLine("add");
-                        sw.Flush();
                         msg = sr.ReadLine();
                         MessageBox.Show(msg, "Info", MessageBoxButtons.OK, MessageBoxIcon.Information);
 
                     }
                     else
                     {
-                        MessageBox.Show(msg, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    }
-
-                }
-                else
-                {
-                    listBox1.Items.Clear();
-                    sw.WriteLine(textBox1.Text);
-                    sw.Flush();
-                    msg = sr.ReadLine();
-
-                    if (msg != "Usuario desconocido")
-                    {
-                        sr.ReadLine();
-                        sw.WriteLine("list");
-                        sw.Flush();
-                        while (msg!=null)
+                        listBox1.Items.Clear();
+                        while (msg != null)
                         {
                             msg = sr.ReadLine();
 
@@ -118,17 +123,17 @@ namespace Ejercicio2Cliente
                             {
                                 listBox1.Items.Add(msg);
                             }
-                            
+
                         }
 
-
-                    }
-                    else
-                    {
-                        MessageBox.Show(msg, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     }
                 }
+                else
+
+                    MessageBox.Show(msg, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+
             }
+
         }
 
         private void cambiarIPPuertoToolStripMenuItem1_Click(object sender, EventArgs e)
@@ -148,7 +153,7 @@ namespace Ejercicio2Cliente
         private void Form1_FormClosing(object sender, FormClosingEventArgs e)
         {
             guardarConfiguracion();
-            
+
         }
     }
 }

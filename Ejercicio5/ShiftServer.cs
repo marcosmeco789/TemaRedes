@@ -41,7 +41,54 @@ namespace Ejercicio5
 
         }
 
-        public void leerRecords()
+        public void getWord(StreamWriter sw)
+        {
+            int tamaño = palabras.Count();
+
+            int aleatorio = random.Next(0, tamaño);
+
+            sw.WriteLine(palabras[aleatorio]);
+            sw.Flush();
+
+
+        }
+
+        public void sendWord(StreamWriter sw, string palabraAñadir)
+        {
+
+            palabras.Add(palabraAñadir);
+
+            try
+            {
+                using (StreamWriter strw = new StreamWriter(Environment.GetEnvironmentVariable("homepath") + "\\palabras.txt", false))
+                {
+                    string cadena = "";
+                    foreach (string palabra in palabras)
+                    {
+                        cadena = cadena + palabra + ";";
+                        strw.Write(";" + palabra);
+                        strw.Flush();
+                    }
+                }
+
+
+
+            }
+                sw.WriteLine("OK");
+            sw.Flush();
+        }
+            catch (Exception ex) when(ex is UnauthorizedAccessException || ex is ArgumentException || ex is ArgumentNullException ||
+                  ex is DirectoryNotFoundException || ex is PathTooLongException || ex is IOException)
+        {
+            sw.WriteLine("ERROR");
+            sw.Flush();
+
+        }
+
+
+        }
+
+        public void getRecords()
         {
             Record r = new Record();
 
@@ -52,48 +99,14 @@ namespace Ejercicio5
             }
         }
 
-        public void getWord(StreamWriter sw)
+        public void sendRecord(StreamWriter sw, string recordAñadir)
         {
-            int tamaño = palabras.Count();
 
-            int aleatorio = random.Next(0, tamaño);
-
-            sw.WriteLine(palabras[aleatorio]);
-            sw.Flush();
-
-            
         }
 
-        public void sendWord(StreamWriter sw, string palabraAñadir)
-        {
-            palabras.Add(palabraAñadir);
 
-
-            try
-            {
-                using (StreamWriter strw = new StreamWriter(Environment.GetEnvironmentVariable("homepath") + "\\records.bin"))
-                {
-                    foreach (string palabra in palabras)
-                    {
-                        strw.WriteLine(palabra);
-                        strw.Flush();
-                    }
-                }
-                sw.WriteLine("OK");
-                sw.Flush();
-            }
-            catch (Exception ex) when (ex is UnauthorizedAccessException || ex is ArgumentException || ex is ArgumentNullException || 
-                  ex is DirectoryNotFoundException || ex is PathTooLongException || ex is IOException)
-            {
-                sw.WriteLine("ERROR");
-                sw.Flush();
-
-            }
-
-            
-        }
-
-        public void getRecords(StreamWriter sw)
+        // puede ser hardcodeada, da un poco igual
+        public void closeServer(StreamWriter sw, string clave)
         {
 
         }
@@ -139,6 +152,8 @@ namespace Ejercicio5
             }
         }
 
+
+
         public void hiloCliente(object socket)
         {
             bool bucleActivo = true;
@@ -149,47 +164,66 @@ namespace Ejercicio5
             Console.WriteLine("Connected with client {0} at port {1}",
             ieCliente.Address, ieCliente.Port);
 
-            leerPalabras(cliente);
+            //leerPalabras(cliente);
 
             using (NetworkStream ns = new NetworkStream(cliente))
             using (StreamReader sr = new StreamReader(ns))
             using (StreamWriter sw = new StreamWriter(ns))
             {
-                sw.WriteLine("Comandos disponibles: getword; sendword []; getrecords y sendrecord []");
-                sw.Flush();
-                mensaje = sr.ReadLine();
-
-                string[] mensajeSplit = mensaje.Split(' ');
-
-                if (mensaje != null)
+                try
                 {
-                    switch (mensajeSplit[0])
+                    sw.WriteLine("Comandos disponibles: getword; sendword []; getrecords y sendrecord []");
+                    sw.Flush();
+                    mensaje = sr.ReadLine();
+
+                    string[] mensajeSplit = mensaje.Split(' ');
+
+                    if (mensaje != null)
                     {
-                        case "getword":
-                            getWord(sw);
-                            break;
+                        switch (mensajeSplit[0])
+                        {
+                            case "getword":
+                                getWord(sw);
+                                break;
 
-                        case "sendword":
-                            if (mensajeSplit.Length == 1)
-                            {
-                                sendWord(sw, mensajeSplit[1]);
-                            }
-                            break;
+                            case "sendword":
+                                if (mensajeSplit.Length == 2)
+                                {
+                                    sendWord(sw, mensajeSplit[1]);
+                                }
+                                break;
 
-                        case "getrecords":
-                            break;
+                            case "getrecords":
+                                getRecords();
+                                break;
 
-                        case "sendrecord":
-                            if (mensajeSplit.Length == 1)
-                            {
+                            case "sendrecord":
+                                if (mensajeSplit.Length == 2)
+                                {
+                                    sendRecord(sw, mensajeSplit[1]);
+                                }
+                                break;
 
-                            }
-                            break;
+                            case "closeserver":
+                                if (mensajeSplit.Length == 2)
+                                {
+                                    closeServer(sw, mensajeSplit[1]);
+                                }
+                                break;
 
-                        default:
-                            break;
+                            default:
+                                break;
+                        }
                     }
                 }
+                catch (IOException)
+                {
+
+
+                }
+                cliente.Close();
+                Console.WriteLine("Se ha desconectado: " + ieCliente.Address, ieCliente.Port);
+
 
             }
         }

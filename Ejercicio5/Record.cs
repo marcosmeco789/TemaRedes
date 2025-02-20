@@ -12,3 +12,10 @@ namespace Ejercicio5
         public int Segundos { set; get; }
     }
 }
+
+
+
+
+
+
+

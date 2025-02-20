@@ -70,6 +70,7 @@ namespace Ejercicio1Cliente
             if (validoPuerto && validoIp)
             {
                 MessageBox.Show("IP/Puerto cambiado exitosamente!", "Añadido", MessageBoxButtons.OK, MessageBoxIcon.Information);
+             
             }
         }
 
