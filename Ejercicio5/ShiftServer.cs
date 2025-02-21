@@ -27,11 +27,20 @@ namespace Ejercicio5
                 using (StreamReader sr = new StreamReader(Environment.GetEnvironmentVariable("homepath") + "\\palabras.txt"))
                 {
                     string cadena = sr.ReadLine();
-                    string[] palabrasSplit = cadena.ToUpper().Split(';');
-                    foreach (string palabra in palabrasSplit)
+                    if (cadena != null)
                     {
-                        palabras.Add(palabra);
+                        string[] palabrasSplit = cadena.Split(';');
+
+                        foreach (string palabra in palabrasSplit)
+                        {
+                            if (!palabras.Contains(palabra))
+                            {
+                                palabras.Add(palabra);
+                            }
+                        }
                     }
+
+
                 }
             }
             catch (Exception ex) when (ex is ArgumentException || ex is ArgumentNullException || ex is FileNotFoundException || ex is DirectoryNotFoundException || ex is IOException)
@@ -47,8 +56,12 @@ namespace Ejercicio5
 
             int aleatorio = random.Next(0, tamaño);
 
-            sw.WriteLine(palabras[aleatorio]);
-            sw.Flush();
+            if (palabras.Count > 0)
+            {
+                sw.WriteLine(palabras[aleatorio].ToUpper());
+                sw.Flush();
+            }
+
 
 
         }
@@ -66,41 +79,58 @@ namespace Ejercicio5
                     foreach (string palabra in palabras)
                     {
                         cadena = cadena + palabra + ";";
-                        strw.Write(";" + palabra);
-                        strw.Flush();
                     }
+                    strw.Write(cadena.Trim(';'));
+                    strw.Flush();
+
+
+
+
+
                 }
-
-
+                sw.WriteLine("OK");
+                sw.Flush();
+            }
+            catch (Exception ex) when (ex is UnauthorizedAccessException || ex is ArgumentException || ex is ArgumentNullException ||
+                  ex is DirectoryNotFoundException || ex is PathTooLongException || ex is IOException)
+            {
+                sw.WriteLine("ERROR");
+                sw.Flush();
 
             }
-                sw.WriteLine("OK");
-            sw.Flush();
+
+
         }
-            catch (Exception ex) when(ex is UnauthorizedAccessException || ex is ArgumentException || ex is ArgumentNullException ||
-                  ex is DirectoryNotFoundException || ex is PathTooLongException || ex is IOException)
+
+        public void getRecords(StreamWriter sw)
         {
-            sw.WriteLine("ERROR");
-            sw.Flush();
 
-        }
-
-
-        }
-
-        public void getRecords()
-        {
-            Record r = new Record();
 
             FileStream fs = new FileStream(Environment.GetEnvironmentVariable("homepath") + "\\records.bin", FileMode.Open);
-            using (BinaryReader br = new BinaryReader(fs))
-            {
 
-            }
+            Leer r = new Leer(fs);
+
+            sw.WriteLine(r.ReadRecord().ToString());
+            sw.Flush();
+            
+
+            r.Close();
+            fs.Close();
         }
 
         public void sendRecord(StreamWriter sw, string recordAñadir)
         {
+            string nombre = "test";
+            int segundos = 10;
+            Record r = new Record(nombre,segundos);
+
+            FileStream fs = new FileStream(Environment.GetEnvironmentVariable("homepath") + "\\records.bin", FileMode.Open, FileAccess.Write);
+
+            Escribir e = new Escribir(fs);
+            e.Write(r);
+
+            e.Close();
+
 
         }
 
@@ -164,7 +194,6 @@ namespace Ejercicio5
             Console.WriteLine("Connected with client {0} at port {1}",
             ieCliente.Address, ieCliente.Port);
 
-            //leerPalabras(cliente);
 
             using (NetworkStream ns = new NetworkStream(cliente))
             using (StreamReader sr = new StreamReader(ns))
@@ -172,6 +201,7 @@ namespace Ejercicio5
             {
                 try
                 {
+                    leerPalabras(cliente);
                     sw.WriteLine("Comandos disponibles: getword; sendword []; getrecords y sendrecord []");
                     sw.Flush();
                     mensaje = sr.ReadLine();
@@ -194,7 +224,7 @@ namespace Ejercicio5
                                 break;
 
                             case "getrecords":
-                                getRecords();
+                                getRecords(sw);
                                 break;
 
                             case "sendrecord":

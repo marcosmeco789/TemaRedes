@@ -10,6 +10,17 @@ namespace Ejercicio5
     {
         public string Nombre { set; get; }
         public int Segundos { set; get; }
+
+        public Record(string nombre, int segundos)
+        {
+            Nombre = nombre;
+            Segundos = segundos;
+        }
+
+        public override string ToString()
+        {
+            return "Nombre: " + Nombre + "\nSegundos: " + Segundos;
+        }
     }
 }
 
