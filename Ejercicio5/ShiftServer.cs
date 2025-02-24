@@ -7,6 +7,7 @@ using System.Net;
 using System.Text;
 using System.Threading.Tasks;
 using System.Threading;
+using System.Security;
 
 namespace Ejercicio5
 {
@@ -112,7 +113,7 @@ namespace Ejercicio5
 
             sw.WriteLine(r.ReadRecord().ToString());
             sw.Flush();
-            
+
 
             r.Close();
             fs.Close();
@@ -122,14 +123,78 @@ namespace Ejercicio5
         {
             string nombre = "test";
             int segundos = 10;
-            Record r = new Record(nombre,segundos);
+            Record r = new Record(nombre, segundos);
+            List<Record> records = new List<Record>();
 
-            FileStream fs = new FileStream(Environment.GetEnvironmentVariable("homepath") + "\\records.bin", FileMode.Open, FileAccess.Write);
+            try
+            {
+                FileStream fs = new FileStream(Environment.GetEnvironmentVariable("homepath") + "\\records.bin", FileMode.OpenOrCreate, FileAccess.ReadWrite);
 
-            Escribir e = new Escribir(fs);
-            e.Write(r);
+                Escribir e = new Escribir(fs);
+                Leer l = new Leer(fs);
+                bool continuar = true;
+                int minSegundos;
 
-            e.Close();
+                while (continuar)
+                {
+                    Record record = l.ReadRecord();
+                    if (record == null)
+                    {
+                        continuar = false;
+                    }
+                    else
+                    {
+                        records.Add(l.ReadRecord());
+                    }
+                }
+
+                minSegundos = records[0].Segundos;
+                foreach (Record item in records)
+                {
+                    if (item.Segundos<minSegundos)
+                    {
+                        minSegundos = item.Segundos;
+                    }
+                }
+
+                foreach (Record item in records)
+                {
+                    if (item.Segundos == minSegundos)
+                    {
+                        
+                    }
+                }
+
+
+
+
+                if (records.Count<3)
+                {
+                    e.Write(r);
+                    
+                } else
+                {
+                    if (r.Segundos>minSegundos)
+                    {
+                        
+                    }
+                }
+
+
+                e.Close();
+
+
+
+
+
+            }
+            catch (Exception ex) when (ex is ArgumentNullException || ex is ArgumentException || ex is NotSupportedException || ex is FileNotFoundException ||
+                   ex is SecurityException || ex is DirectoryNotFoundException || ex is UnauthorizedAccessException || ex is PathTooLongException || ex is ArgumentOutOfRangeException)
+            {
+                sw.WriteLine("Error en el archivo");
+            }
+
+
 
 
         }
