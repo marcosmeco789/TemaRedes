@@ -19,7 +19,7 @@ namespace Ejercicio5
 
         public override string ToString()
         {
-            return "Nombre: " + Nombre + "\nSegundos: " + Segundos;
+            return "Nombre: " + Nombre + " | Segundos: " + Segundos;
         }
     }
 }

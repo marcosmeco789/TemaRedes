@@ -17,7 +17,9 @@ namespace Ejercicio5
         Socket s;
         bool activo = true;
         List<string> palabras = new List<string>();
+        List<Record> records = new List<Record>();
         Random random = new Random();
+        int minSegundos;
 
 
 
@@ -49,6 +51,23 @@ namespace Ejercicio5
                 cliente.Close();
             }
 
+        }
+
+
+        public void leerRecords(StreamWriter sw)
+        {
+            FileStream fs = new FileStream(Environment.GetEnvironmentVariable("homepath") + "\\records.bin", FileMode.Open);
+
+            Leer r = new Leer(fs);
+
+            Record obtenerRecord = r.ReadRecord();
+            if (obtenerRecord != null)
+            {
+                records.Add(obtenerRecord);
+            }
+
+            r.Close();
+            fs.Close();
         }
 
         public void getWord(StreamWriter sw)
@@ -105,98 +124,104 @@ namespace Ejercicio5
 
         public void getRecords(StreamWriter sw)
         {
-
-
-            FileStream fs = new FileStream(Environment.GetEnvironmentVariable("homepath") + "\\records.bin", FileMode.Open);
-
-            Leer r = new Leer(fs);
-
-            sw.WriteLine(r.ReadRecord().ToString());
-            sw.Flush();
-
-
-            r.Close();
-            fs.Close();
+            try
+            {
+                if (File.Exists(Environment.GetEnvironmentVariable("homepath") + "\\records.bin"))
+                {
+                    using (FileStream fs = new FileStream(Environment.GetEnvironmentVariable("homepath") + "\\records.bin", FileMode.Open, FileAccess.Read))
+                    {
+                        Leer l = new Leer(fs);
+                        Record record;
+                        while ((record = l.ReadRecord()) != null)
+                        {
+                            sw.WriteLine(record.ToString());
+                        }
+                        sw.Flush();
+                    }
+                }
+                else
+                {
+                    sw.WriteLine("No hay records disponibles.");
+                    sw.Flush();
+                }
+            }
+            catch (Exception ex) when (ex is ArgumentNullException || ex is ArgumentException || ex is NotSupportedException || ex is FileNotFoundException ||
+                   ex is SecurityException || ex is DirectoryNotFoundException || ex is UnauthorizedAccessException || ex is PathTooLongException || ex is ArgumentOutOfRangeException)
+            {
+                sw.WriteLine("Error al leer los records");
+                sw.Flush();
+            }
         }
 
-        public void sendRecord(StreamWriter sw, string recordAñadir)
+        public void sendRecord(StreamWriter sw, string nombre, int segundos)
         {
-            string nombre = "test";
-            int segundos = 10;
             Record r = new Record(nombre, segundos);
-            List<Record> records = new List<Record>();
 
             try
             {
-                FileStream fs = new FileStream(Environment.GetEnvironmentVariable("homepath") + "\\records.bin", FileMode.OpenOrCreate, FileAccess.ReadWrite);
 
-                Escribir e = new Escribir(fs);
-                Leer l = new Leer(fs);
-                bool continuar = true;
-                int minSegundos;
-
-                while (continuar)
+                List<Record> recordsExistentes = new List<Record>();
+                if (File.Exists(Environment.GetEnvironmentVariable("homepath") + "\\records.bin"))
                 {
-                    Record record = l.ReadRecord();
-                    if (record == null)
+                    using (FileStream fs = new FileStream(Environment.GetEnvironmentVariable("homepath") + "\\records.bin", FileMode.Open, FileAccess.Read))
                     {
-                        continuar = false;
-                    }
-                    else
-                    {
-                        records.Add(l.ReadRecord());
+                        Leer l = new Leer(fs);
+                        Record recordExistente;
+                        while ((recordExistente = l.ReadRecord()) != null)
+                        {
+                            recordsExistentes.Add(recordExistente);
+                        }
                     }
                 }
 
-                minSegundos = records[0].Segundos;
-                foreach (Record item in records)
+                if (recordsExistentes.Count <= 3)
                 {
-                    if (item.Segundos<minSegundos)
+                    recordsExistentes.Add(r);
+                }
+                else
+                {
+                    Record minRecord = obtenerMinimo(recordsExistentes);
+                    if (r.Segundos > minRecord.Segundos)
                     {
-                        minSegundos = item.Segundos;
+                        recordsExistentes.Remove(minRecord);
+                        recordsExistentes.Add(r);
                     }
                 }
 
-                foreach (Record item in records)
+          
+                using (FileStream fs = new FileStream(Environment.GetEnvironmentVariable("homepath") + "\\records.bin", FileMode.Create, FileAccess.Write))
                 {
-                    if (item.Segundos == minSegundos)
+                    Escribir e = new Escribir(fs);
+                    foreach (var record in recordsExistentes)
                     {
-                        
+                        e.Write(record);
                     }
                 }
 
-
-
-
-                if (records.Count<3)
-                {
-                    e.Write(r);
-                    
-                } else
-                {
-                    if (r.Segundos>minSegundos)
-                    {
-                        
-                    }
-                }
-
-
-                e.Close();
-
-
-
-
-
+                sw.WriteLine("OK");
+                sw.Flush();
             }
             catch (Exception ex) when (ex is ArgumentNullException || ex is ArgumentException || ex is NotSupportedException || ex is FileNotFoundException ||
                    ex is SecurityException || ex is DirectoryNotFoundException || ex is UnauthorizedAccessException || ex is PathTooLongException || ex is ArgumentOutOfRangeException)
             {
                 sw.WriteLine("Error en el archivo");
+                sw.Flush();
             }
+        }
 
-
-
-
+        public Record obtenerMinimo(List<Record> records)
+        {
+            int minSegundos = records[0].Segundos;
+            Record minRecord = records[0];
+            foreach (Record item in records)
+            {
+                if (item.Segundos < minSegundos)
+                {
+                    minSegundos = item.Segundos;
+                    minRecord = item;
+                }
+            }
+            return minRecord;
         }
 
 
@@ -267,6 +292,7 @@ namespace Ejercicio5
                 try
                 {
                     leerPalabras(cliente);
+                    leerRecords(sw);
                     sw.WriteLine("Comandos disponibles: getword; sendword []; getrecords y sendrecord []");
                     sw.Flush();
                     mensaje = sr.ReadLine();
@@ -293,9 +319,9 @@ namespace Ejercicio5
                                 break;
 
                             case "sendrecord":
-                                if (mensajeSplit.Length == 2)
+                                if (mensajeSplit.Length == 3)
                                 {
-                                    sendRecord(sw, mensajeSplit[1]);
+                                    sendRecord(sw, mensajeSplit[1], int.Parse(mensajeSplit[2]));
                                 }
                                 break;
 

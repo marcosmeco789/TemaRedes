@@ -24,7 +24,6 @@ namespace Ejercicio5
             catch
             {
                 BaseStream.Close();
-                Environment.Exit(1);
                 return null;
             }
         }
