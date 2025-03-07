@@ -25,9 +25,16 @@ namespace Ejercicio5
 
         public void leerPalabras(Socket cliente)
         {
+            string filePath = Environment.GetEnvironmentVariable("homepath") + "\\palabras.txt";
+
             try
             {
-                using (StreamReader sr = new StreamReader(Environment.GetEnvironmentVariable("homepath") + "\\palabras.txt"))
+                if (!File.Exists(filePath))
+                {
+                    File.Create(filePath).Close();
+                }
+
+                using (StreamReader sr = new StreamReader(filePath))
                 {
                     string cadena = sr.ReadLine();
                     if (cadena != null)
@@ -42,32 +49,42 @@ namespace Ejercicio5
                             }
                         }
                     }
-
-
                 }
             }
             catch (Exception ex) when (ex is ArgumentException || ex is ArgumentNullException || ex is FileNotFoundException || ex is DirectoryNotFoundException || ex is IOException)
             {
                 cliente.Close();
             }
-
         }
 
 
         public void leerRecords(StreamWriter sw)
         {
-            FileStream fs = new FileStream(Environment.GetEnvironmentVariable("homepath") + "\\records.bin", FileMode.Open);
+            string filePath = Environment.GetEnvironmentVariable("homepath") + "\\records.bin";
 
-            Leer r = new Leer(fs);
-
-            Record obtenerRecord = r.ReadRecord();
-            if (obtenerRecord != null)
+            try
             {
-                records.Add(obtenerRecord);
-            }
+                if (!File.Exists(filePath))
+                {
+                    File.Create(filePath).Close();
+                }
 
-            r.Close();
-            fs.Close();
+                using (FileStream fs = new FileStream(filePath, FileMode.Open, FileAccess.Read))
+                {
+                    Leer r = new Leer(fs);
+                    Record obtenerRecord;
+                    while ((obtenerRecord = r.ReadRecord()) != null)
+                    {
+                        records.Add(obtenerRecord);
+                    }
+                }
+            }
+            catch (Exception ex) when (ex is ArgumentNullException || ex is ArgumentException || ex is NotSupportedException || ex is FileNotFoundException ||
+                   ex is SecurityException || ex is DirectoryNotFoundException || ex is UnauthorizedAccessException || ex is PathTooLongException || ex is ArgumentOutOfRangeException)
+            {
+                sw.WriteLine("Error al leer los records");
+                sw.Flush();
+            }
         }
 
         public void getWord(StreamWriter sw)
@@ -159,7 +176,6 @@ namespace Ejercicio5
 
             try
             {
-
                 List<Record> recordsExistentes = new List<Record>();
                 if (File.Exists(Environment.GetEnvironmentVariable("homepath") + "\\records.bin"))
                 {
@@ -174,32 +190,43 @@ namespace Ejercicio5
                     }
                 }
 
-                if (recordsExistentes.Count <= 3)
+                bool recordGuardado = false;
+
+                if (recordsExistentes.Count < 3)
                 {
                     recordsExistentes.Add(r);
+                    recordGuardado = true;
                 }
                 else
                 {
-                    Record minRecord = obtenerMinimo(recordsExistentes);
-                    if (r.Segundos > minRecord.Segundos)
+                    Record maxRecord = obtenerMaximo(recordsExistentes);
+                    if (r.Segundos < maxRecord.Segundos)
                     {
-                        recordsExistentes.Remove(minRecord);
+                        recordsExistentes.Remove(maxRecord);
                         recordsExistentes.Add(r);
+                        recordGuardado = true;
                     }
                 }
 
-          
-                using (FileStream fs = new FileStream(Environment.GetEnvironmentVariable("homepath") + "\\records.bin", FileMode.Create, FileAccess.Write))
+                if (recordGuardado)
                 {
-                    Escribir e = new Escribir(fs);
-                    foreach (var record in recordsExistentes)
+                    using (FileStream fs = new FileStream(Environment.GetEnvironmentVariable("homepath") + "\\records.bin", FileMode.Create, FileAccess.Write))
                     {
-                        e.Write(record);
+                        Escribir e = new Escribir(fs);
+                        foreach (var record in recordsExistentes)
+                        {
+                            e.Write(record);
+                        }
                     }
+                    sw.WriteLine("ACCEPT");
+                    sw.Flush();
+                }
+                else
+                {
+                    sw.WriteLine("REJECT");
+                    sw.Flush();
                 }
 
-                sw.WriteLine("OK");
-                sw.Flush();
             }
             catch (Exception ex) when (ex is ArgumentNullException || ex is ArgumentException || ex is NotSupportedException || ex is FileNotFoundException ||
                    ex is SecurityException || ex is DirectoryNotFoundException || ex is UnauthorizedAccessException || ex is PathTooLongException || ex is ArgumentOutOfRangeException)
@@ -209,25 +236,37 @@ namespace Ejercicio5
             }
         }
 
-        public Record obtenerMinimo(List<Record> records)
+        public Record obtenerMaximo(List<Record> records)
         {
-            int minSegundos = records[0].Segundos;
-            Record minRecord = records[0];
+            int maxSegundos = records[0].Segundos;
+            Record maxRecord = records[0];
             foreach (Record item in records)
             {
-                if (item.Segundos < minSegundos)
+                if (item.Segundos > maxSegundos)
                 {
-                    minSegundos = item.Segundos;
-                    minRecord = item;
+                    maxSegundos = item.Segundos;
+                    maxRecord = item;
                 }
             }
-            return minRecord;
+            return maxRecord;
         }
 
 
-        // puede ser hardcodeada, da un poco igual
-        public void closeServer(StreamWriter sw, string clave)
+        public void closeServer(StreamWriter sw, string clave, Socket s)
         {
+            string contraseña = "1234";
+            if (clave == contraseña)
+            {
+                activo = false;
+                sw.WriteLine("Servidor cerrado");
+                sw.Flush();
+                s.Close();
+            }
+            else
+            {
+                sw.WriteLine("Contraseña incorrecta");
+                sw.Flush();
+            }
 
         }
 
@@ -293,18 +332,23 @@ namespace Ejercicio5
                 {
                     leerPalabras(cliente);
                     leerRecords(sw);
-                    sw.WriteLine("Comandos disponibles: getword; sendword []; getrecords y sendrecord []");
+                    sw.WriteLine("Comandos disponibles: getword; sendword [palabra]; getrecords ; sendrecord [nombre] [tiempo] y closeserver [contraseña]");
                     sw.Flush();
                     mensaje = sr.ReadLine();
 
-                    string[] mensajeSplit = mensaje.Split(' ');
+
 
                     if (mensaje != null)
                     {
+                        string[] mensajeSplit = mensaje.Split(' ');
+
                         switch (mensajeSplit[0])
                         {
                             case "getword":
-                                getWord(sw);
+                                if (mensajeSplit.Length == 1)
+                                {
+                                    getWord(sw);
+                                }
                                 break;
 
                             case "sendword":
@@ -315,20 +359,29 @@ namespace Ejercicio5
                                 break;
 
                             case "getrecords":
-                                getRecords(sw);
+                                if (mensajeSplit.Length == 1)
+                                {
+                                    getRecords(sw);
+                                }
                                 break;
 
                             case "sendrecord":
                                 if (mensajeSplit.Length == 3)
                                 {
-                                    sendRecord(sw, mensajeSplit[1], int.Parse(mensajeSplit[2]));
+                                    if (mensajeSplit.Length == 3)
+                                    {
+                                        if (int.TryParse(mensajeSplit[2], out int segundos))
+                                        {
+                                            sendRecord(sw, mensajeSplit[1], segundos);
+                                        }
+                                    }
                                 }
                                 break;
 
                             case "closeserver":
                                 if (mensajeSplit.Length == 2)
                                 {
-                                    closeServer(sw, mensajeSplit[1]);
+                                    closeServer(sw, mensajeSplit[1], s);
                                 }
                                 break;
 
@@ -350,5 +403,4 @@ namespace Ejercicio5
         }
     }
 }
-
 
